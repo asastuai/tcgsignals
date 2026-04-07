@@ -68,7 +68,7 @@ function SearchContent() {
       // Fetch TCG names
       const tcgs = await getTcgs();
       if (tcgs.length > 0) {
-        setTcgInfos(tcgs.map((t) => ({ id: t.id, name: t.name.split(" ")[0] })));
+        setTcgInfos(tcgs.map((t) => ({ id: t.id, name: t.id === "onepiece" ? "One Piece" : t.name.replace(" TCG", "") })));
       }
     } catch (e) {
       console.warn("Search fetch failed:", e);
