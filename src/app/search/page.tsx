@@ -115,7 +115,30 @@ function SearchContent() {
         const { data, count } = await query;
 
         if (data) {
-          setCards(data.map((r) => mapSupabaseCard(r as unknown as Record<string, unknown>)));
+          let mapped = data.map((r) => mapSupabaseCard(r as unknown as Record<string, unknown>));
+
+          // Client-side sort for price-based sorts (can't sort by joined table in Supabase)
+          switch (sort) {
+            case "price-desc":
+              mapped.sort((a, b) => b.currentPrice - a.currentPrice);
+              break;
+            case "price-asc":
+              mapped.sort((a, b) => (a.currentPrice || Infinity) - (b.currentPrice || Infinity));
+              break;
+            case "change-desc":
+              mapped.sort((a, b) => b.priceChange24h - a.priceChange24h);
+              break;
+            case "change-asc":
+              mapped.sort((a, b) => a.priceChange24h - b.priceChange24h);
+              break;
+          }
+
+          // Default: cards with price first
+          if (!sort) {
+            mapped.sort((a, b) => (b.currentPrice > 0 ? 1 : 0) - (a.currentPrice > 0 ? 1 : 0));
+          }
+
+          setCards(mapped);
           setTotal(count || 0);
           setTotalPages(Math.ceil((count || 0) / PAGE_SIZE));
         }
