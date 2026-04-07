@@ -60,9 +60,9 @@ function CardItem({ card, index }: { card: Card; index: number }) {
       transition={{ duration: 0.3, delay: index * 0.05, ease: "easeOut" }}
     >
       <Link href={`/card/${card.id}`}>
-        <div className="group rounded-xl bg-bg-card border border-border p-4 hover:border-accent/50 card-hover card-glow cursor-pointer">
+        <div className="group rounded-xl bg-bg-card border border-border p-3 sm:p-4 hover:border-accent/50 card-hover card-glow cursor-pointer">
           {/* Card image */}
-          <div className="relative aspect-[2.5/3.5] rounded-lg bg-bg-secondary mb-3 overflow-hidden flex items-center justify-center">
+          <div className="relative aspect-[5/7] rounded-lg bg-bg-secondary mb-3 overflow-hidden flex items-center justify-center">
             <CardImage src={card.image} alt={card.name} />
             {/* TCG badge */}
             <span
@@ -132,7 +132,7 @@ export default function CardGrid({ cards, title }: { cards: Card[]; title?: stri
       {title && (
         <h2 className="text-xl font-bold text-text-primary mb-5">{title}</h2>
       )}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
         {cards.map((card, i) => (
           <CardItem key={card.id} card={card} index={i} />
         ))}

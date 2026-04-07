@@ -4,8 +4,8 @@ export function Skeleton({ className = "" }: { className?: string }) {
 
 export function CardSkeleton() {
   return (
-    <div className="rounded-xl bg-bg-card border border-border p-4">
-      <Skeleton className="aspect-[2.5/3.5] w-full mb-3" />
+    <div className="rounded-xl bg-bg-card border border-border p-3 sm:p-4">
+      <Skeleton className="aspect-[5/7] w-full mb-3" />
       <Skeleton className="h-4 w-3/4 mb-2" />
       <Skeleton className="h-3 w-1/2 mb-3" />
       <div className="flex justify-between">
@@ -18,7 +18,7 @@ export function CardSkeleton() {
 
 export function CardGridSkeleton({ count = 6 }: { count?: number }) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
       {Array.from({ length: count }).map((_, i) => (
         <CardSkeleton key={i} />
       ))}
