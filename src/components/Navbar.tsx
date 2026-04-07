@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Search, Menu, X, TrendingUp, Zap } from "lucide-react";
+import { Search, Menu, X, TrendingUp, Zap, Layers } from "lucide-react";
 import { useRouter } from "next/navigation";
 import ThemeToggle from "./ThemeToggle";
 
@@ -63,6 +63,13 @@ export default function Navbar() {
             One Piece
           </Link>
           <Link
+            href="/sets"
+            className="flex items-center gap-1.5 text-text-secondary hover:text-accent transition-colors font-medium"
+          >
+            <Layers className="w-4 h-4" />
+            Sets
+          </Link>
+          <Link
             href="/search?view=trending"
             className="flex items-center gap-1.5 text-text-secondary hover:text-accent transition-colors font-medium"
           >
@@ -119,6 +126,14 @@ export default function Navbar() {
               className="text-text-secondary hover:text-onepiece py-1 font-medium"
             >
               One Piece
+            </Link>
+            <Link
+              href="/sets"
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center gap-1.5 text-text-secondary hover:text-accent py-1 font-medium"
+            >
+              <Layers className="w-4 h-4" />
+              Sets
             </Link>
             <Link
               href="/search?view=trending"
