@@ -70,6 +70,9 @@ function SearchContent() {
   const [rarities, setRarities] = useState<string[]>([]);
   const [useSupabase, setUseSupabase] = useState(false);
 
+  // Use params string as a stable key for refetching
+  const paramsKey = params.toString();
+
   const fetchCards = useCallback(async () => {
     setLoading(true);
 
@@ -191,7 +194,8 @@ function SearchContent() {
     setTotalPages(1);
     setRarities([...new Set(allMockCards.map((c) => c.rarity))]);
     setLoading(false);
-  }, [q, tcg, view, rarity, sort, pageParam]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paramsKey]);
 
   useEffect(() => {
     fetchCards();
@@ -208,7 +212,7 @@ function SearchContent() {
     if (key !== "page") {
       newParams.delete("page");
     }
-    router.push(`/search?${newParams.toString()}`);
+    router.replace(`/search?${newParams.toString()}`);
   }
 
   const title = q
