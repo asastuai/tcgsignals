@@ -69,16 +69,28 @@ async function main() {
   await supabase.from("prices").delete().neq("id", 0); // delete all
   console.log("Cleared.");
 
-  // Get all cards with prices
-  const { data: cards, error } = await supabase
-    .from("cards")
-    .select("id, current_price, tcg_id")
-    .not("current_price", "is", null)
-    .gt("current_price", 0);
+  // Get all cards with prices (paginated, Supabase default limit is 1000)
+  const cards: Array<{ id: string; current_price: number; tcg_id: string }> = [];
+  let page = 0;
+  const PAGE_SIZE = 1000;
 
-  if (error || !cards) {
-    console.error("Failed to fetch cards:", error);
-    process.exit(1);
+  while (true) {
+    const { data, error } = await supabase
+      .from("cards")
+      .select("id, current_price, tcg_id")
+      .not("current_price", "is", null)
+      .gt("current_price", 0)
+      .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+
+    if (error) {
+      console.error("Failed to fetch cards:", error);
+      process.exit(1);
+    }
+
+    if (!data || data.length === 0) break;
+    cards.push(...(data as typeof cards));
+    page++;
+    console.log(`Fetched ${cards.length} cards...`);
   }
 
   console.log(`Generating 90-day history for ${cards.length} cards...`);
