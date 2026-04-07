@@ -5,6 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Layers, Calendar, Hash } from "lucide-react";
 import { Skeleton } from "@/components/Skeleton";
+import { getSets } from "@/lib/queries/cards";
 
 interface SetData {
   id: string;
@@ -24,29 +25,15 @@ export default function SetsPage() {
 
   useEffect(() => {
     async function load() {
-      const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-      if (!url || !key) { setLoading(false); return; }
-
-      const { createClient } = await import("@supabase/supabase-js");
-      const supabase = createClient(url, key);
-
-      const { data } = await supabase
-        .from("sets")
-        .select("*")
-        .order("release_date", { ascending: false });
-
-      if (data) setSets(data as SetData[]);
+      const data = await getSets();
+      setSets(data as SetData[]);
       setLoading(false);
     }
     load();
   }, []);
 
-  const filtered = filter
-    ? sets.filter((s) => s.tcg_id === filter)
-    : sets;
+  const filtered = filter ? sets.filter((s) => s.tcg_id === filter) : sets;
 
-  // Group by series
   const grouped: Record<string, SetData[]> = {};
   for (const s of filtered) {
     const key = s.series || "Other";
@@ -62,47 +49,31 @@ export default function SetsPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-      >
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-2xl font-bold text-text-primary flex items-center gap-2">
               <Layers className="w-6 h-6 text-accent" />
               Sets
             </h1>
-            <p className="text-sm text-text-muted mt-1">
-              {filtered.length} sets disponibles
-            </p>
+            <p className="text-sm text-text-muted mt-1">{filtered.length} sets disponibles</p>
           </div>
-
           <div className="flex gap-2">
-            <button
-              onClick={() => setFilter("")}
-              className={`px-3 py-1.5 text-xs rounded-lg border font-medium transition-all ${
-                !filter ? "bg-accent text-white border-accent" : "border-border text-text-muted hover:border-accent/30"
-              }`}
-            >
-              Todos ({tcgCounts.all})
-            </button>
-            <button
-              onClick={() => setFilter("pokemon")}
-              className={`px-3 py-1.5 text-xs rounded-lg border font-medium transition-all ${
-                filter === "pokemon" ? "bg-accent text-white border-accent" : "border-border text-text-muted hover:border-accent/30"
-              }`}
-            >
-              Pokemon ({tcgCounts.pokemon})
-            </button>
-            <button
-              onClick={() => setFilter("onepiece")}
-              className={`px-3 py-1.5 text-xs rounded-lg border font-medium transition-all ${
-                filter === "onepiece" ? "bg-accent text-white border-accent" : "border-border text-text-muted hover:border-accent/30"
-              }`}
-            >
-              One Piece ({tcgCounts.onepiece})
-            </button>
+            {[
+              { key: "", label: `Todos (${tcgCounts.all})` },
+              { key: "pokemon", label: `Pokemon (${tcgCounts.pokemon})` },
+              { key: "onepiece", label: `One Piece (${tcgCounts.onepiece})` },
+            ].map((f) => (
+              <button
+                key={f.key}
+                onClick={() => setFilter(f.key)}
+                className={`px-3 py-1.5 text-xs rounded-lg border font-medium transition-all ${
+                  filter === f.key ? "bg-accent text-white border-accent" : "border-border text-text-muted hover:border-accent/30"
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -112,8 +83,7 @@ export default function SetsPage() {
               <div key={i} className="rounded-xl bg-bg-card border border-border p-4">
                 <Skeleton className="h-12 w-12 rounded-lg mb-3" />
                 <Skeleton className="h-5 w-3/4 mb-2" />
-                <Skeleton className="h-3 w-1/2 mb-1" />
-                <Skeleton className="h-3 w-1/3" />
+                <Skeleton className="h-3 w-1/2" />
               </div>
             ))}
           </div>
@@ -131,14 +101,8 @@ export default function SetsPage() {
                   >
                     <Link href={`/sets/${set.id}`}>
                       <div className="rounded-xl bg-bg-card border border-border p-4 card-hover card-glow cursor-pointer group">
-                        {/* Set logo */}
                         {set.image_url ? (
-                          <img
-                            src={set.image_url}
-                            alt={set.name}
-                            className="h-10 mb-3 object-contain"
-                            loading="lazy"
-                          />
+                          <img src={set.image_url} alt={set.name} className="h-10 mb-3 object-contain" loading="lazy" />
                         ) : (
                           <div className={`w-10 h-10 rounded-lg mb-3 flex items-center justify-center text-xs font-bold ${
                             set.tcg_id === "pokemon" ? "bg-pokemon/20 text-pokemon" : "bg-onepiece/20 text-onepiece"
@@ -146,16 +110,11 @@ export default function SetsPage() {
                             {set.tcg_id === "pokemon" ? "PKM" : "OP"}
                           </div>
                         )}
-
                         <h3 className="text-sm font-semibold text-text-primary group-hover:text-accent transition-colors truncate">
                           {set.name}
                         </h3>
-
                         <div className="flex items-center gap-3 mt-2 text-xs text-text-muted">
-                          <span className="flex items-center gap-1">
-                            <Hash className="w-3 h-3" />
-                            {set.card_count} cartas
-                          </span>
+                          <span className="flex items-center gap-1"><Hash className="w-3 h-3" />{set.card_count} cartas</span>
                           {set.release_date && (
                             <span className="flex items-center gap-1">
                               <Calendar className="w-3 h-3" />

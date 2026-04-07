@@ -87,12 +87,14 @@ function CardItem({ card, index }: { card: Card; index: number }) {
           {/* Price row */}
           <div className="flex items-end justify-between mt-3">
             <div>
-              {card.currentPrice > 0 ? (
+              {card.currentPrice != null ? (
                 <>
                   <p className="text-lg font-bold text-text-primary">
                     ${card.currentPrice.toFixed(2)}
                   </p>
-                  {card.priceChange24h !== 0 && <PriceChange value={card.priceChange24h} />}
+                  {card.priceChange24h != null && card.priceChange24h !== 0 && (
+                    <PriceChange value={card.priceChange24h} />
+                  )}
                 </>
               ) : (
                 <p className="text-sm text-text-muted">Sin precio</p>

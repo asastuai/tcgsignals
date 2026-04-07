@@ -2,8 +2,8 @@
 
 import { useSearchParams, useRouter } from "next/navigation";
 import { Suspense, useEffect, useState, useCallback } from "react";
-import { searchCards, getCardsByTcg, getTrendingCards, cards as allMockCards } from "@/data/cards";
-import { tcgs } from "@/data/tcgs";
+import { getCards, getRarities, getTcgs, toCard } from "@/lib/queries/cards";
+import type { SortOption } from "@/lib/queries/cards";
 import CardGrid from "@/components/CardGrid";
 import Pagination from "@/components/Pagination";
 import { CardGridSkeleton } from "@/components/Skeleton";
@@ -23,38 +23,10 @@ const SORT_OPTIONS = [
 
 const PAGE_SIZE = 48;
 
-// Convert Supabase card to the Card type used by CardGrid
-function mapSupabaseCard(row: Record<string, unknown>): Card {
-  const sets = row.sets as Record<string, unknown> | null;
-  const prices = row.price_summaries as Record<string, unknown>[] | Record<string, unknown> | null;
-  const p = Array.isArray(prices) ? prices[0] : prices;
-
-  return {
-    id: row.id as string,
-    name: row.name as string,
-    tcg: row.tcg_id as Card["tcg"],
-    set: row.set_id as string,
-    setName: sets?.name as string || row.set_id as string,
-    number: row.number as string,
-    rarity: row.rarity as string || "Unknown",
-    image: (row.image_large || row.image_small || "") as string,
-    currentPrice: (p?.current_price as number) || 0,
-    previousPrice: (p?.previous_price as number) || 0,
-    priceChange24h: (p?.price_change_24h as number) || 0,
-    lastSold: p?.last_sold_price
-      ? {
-          price: p.last_sold_price as number,
-          platform: (p.last_sold_platform as string) || "",
-          date: (p.last_sold_date as string) || "",
-          condition: (p.last_sold_condition as string) || "Near Mint",
-        }
-      : undefined,
-  };
-}
-
 function SearchContent() {
   const params = useSearchParams();
   const router = useRouter();
+  const paramsKey = params.toString();
 
   const q = params.get("q") || "";
   const tcg = params.get("tcg") || "";
@@ -68,133 +40,44 @@ function SearchContent() {
   const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(true);
   const [rarities, setRarities] = useState<string[]>([]);
-  const [useSupabase, setUseSupabase] = useState(false);
-
-  // Use params string as a stable key for refetching
-  const paramsKey = params.toString();
+  const [tcgInfos, setTcgInfos] = useState<{ id: string; name: string }[]>([
+    { id: "pokemon", name: "Pokemon" },
+    { id: "onepiece", name: "One Piece" },
+  ]);
 
   const fetchCards = useCallback(async () => {
     setLoading(true);
-
-    // Check if Supabase is configured
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-    if (supabaseUrl && supabaseKey) {
-      try {
-        const { createClient } = await import("@supabase/supabase-js");
-        const supabase = createClient(supabaseUrl, supabaseKey);
-        setUseSupabase(true);
-
-        const from = (pageParam - 1) * PAGE_SIZE;
-        const to = from + PAGE_SIZE - 1;
-
-        const select = `
-          id, name, tcg_id, set_id, number, rarity, image_small, image_large,
-          sets:set_id (id, name),
-          price_summaries (current_price, previous_price, price_change_24h, last_sold_price, last_sold_platform, last_sold_date, last_sold_condition)
-        `;
-
-        let query = supabase.from("cards").select(select, { count: "exact" });
-
-        if (q) {
-          query = query.textSearch("search_vector", q, { type: "websearch" });
-        }
-        if (tcg) {
-          query = query.eq("tcg_id", tcg);
-        }
-        if (rarity) {
-          query = query.eq("rarity", rarity);
-        }
-
-        // Sort
-        switch (sort) {
-          case "name-asc": query = query.order("name", { ascending: true }); break;
-          case "name-desc": query = query.order("name", { ascending: false }); break;
-          default: query = query.order("name", { ascending: true });
-        }
-
-        query = query.range(from, to);
-        const { data, count } = await query;
-
-        if (data) {
-          let mapped = data.map((r) => mapSupabaseCard(r as unknown as Record<string, unknown>));
-
-          // Client-side sort for price-based sorts (can't sort by joined table in Supabase)
-          switch (sort) {
-            case "price-desc":
-              mapped.sort((a, b) => b.currentPrice - a.currentPrice);
-              break;
-            case "price-asc":
-              mapped.sort((a, b) => (a.currentPrice || Infinity) - (b.currentPrice || Infinity));
-              break;
-            case "change-desc":
-              mapped.sort((a, b) => b.priceChange24h - a.priceChange24h);
-              break;
-            case "change-asc":
-              mapped.sort((a, b) => a.priceChange24h - b.priceChange24h);
-              break;
-          }
-
-          // Default: cards with price first
-          if (!sort) {
-            mapped.sort((a, b) => (b.currentPrice > 0 ? 1 : 0) - (a.currentPrice > 0 ? 1 : 0));
-          }
-
-          setCards(mapped);
-          setTotal(count || 0);
-          setTotalPages(Math.ceil((count || 0) / PAGE_SIZE));
-        }
-
-        // Fetch rarities for filter
-        const { data: rarityData } = await supabase
-          .from("cards")
-          .select("rarity")
-          .not("rarity", "is", null)
-          .eq("tcg_id", tcg || "pokemon");
-
-        if (rarityData) {
-          const unique = [...new Set(rarityData.map((r) => r.rarity as string))].sort();
-          setRarities(unique);
-        }
-
-        setLoading(false);
-        return;
-      } catch (e) {
-        console.warn("Supabase fetch failed, falling back to mock:", e);
-      }
-    }
-
-    // Fallback to mock data
-    setUseSupabase(false);
-    let results = allMockCards;
-
-    if (q) results = searchCards(q);
-    else if (tcg) results = getCardsByTcg(tcg);
-    else if (view === "trending") results = getTrendingCards();
-
-    if (rarity) results = results.filter((c) => c.rarity === rarity);
-
-    if (sort) {
-      results = [...results].sort((a, b) => {
-        switch (sort) {
-          case "price-desc": return b.currentPrice - a.currentPrice;
-          case "price-asc": return a.currentPrice - b.currentPrice;
-          case "change-desc": return b.priceChange24h - a.priceChange24h;
-          case "change-asc": return a.priceChange24h - b.priceChange24h;
-          case "name-asc": return a.name.localeCompare(b.name);
-          case "name-desc": return b.name.localeCompare(a.name);
-          default: return 0;
-        }
+    try {
+      const result = await getCards({
+        tcg: tcg || undefined,
+        search: q || undefined,
+        rarity: rarity || undefined,
+        sort: (sort || (view === "trending" ? "price-desc" : "")) as SortOption,
+        page: pageParam,
+        pageSize: PAGE_SIZE,
       });
-    }
 
-    setCards(results);
-    setTotal(results.length);
-    setTotalPages(1);
-    setRarities([...new Set(allMockCards.map((c) => c.rarity))]);
+      setCards(result.data.map(toCard));
+      setTotal(result.total);
+      setTotalPages(result.totalPages);
+
+      // Fetch rarities (no hardcoded TCG)
+      const rarityList = await getRarities(tcg || undefined);
+      setRarities(rarityList);
+
+      // Fetch TCG names
+      const tcgs = await getTcgs();
+      if (tcgs.length > 0) {
+        setTcgInfos(tcgs.map((t) => ({ id: t.id, name: t.name.split(" ")[0] })));
+      }
+    } catch (e) {
+      console.warn("Search fetch failed:", e);
+      setCards([]);
+      setTotal(0);
+      setTotalPages(0);
+    }
     setLoading(false);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paramsKey]);
 
   useEffect(() => {
@@ -208,57 +91,47 @@ function SearchContent() {
     } else {
       newParams.delete(key);
     }
-    // Reset page when changing filters
-    if (key !== "page") {
-      newParams.delete("page");
-    }
+    if (key !== "page") newParams.delete("page");
     router.replace(`/search?${newParams.toString()}`);
   }
 
   const title = q
     ? `Resultados para "${q}"`
     : tcg
-      ? tcgs.find((t) => t.id === tcg)?.name || tcg
+      ? tcgInfos.find((t) => t.id === tcg)?.name || tcg
       : view === "trending"
         ? "Trending ahora"
         : "Todas las cartas";
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 animate-fade-in">
-      {/* Header */}
       <div className="flex flex-col gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-text-primary">{title}</h1>
           <p className="text-sm text-text-muted mt-1">
             {total.toLocaleString()} resultado{total !== 1 ? "s" : ""}
-            {useSupabase && <span className="text-accent ml-2">LIVE</span>}
           </p>
         </div>
 
-        {/* Filters bar */}
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex gap-2">
             <Link
               href="/search"
               className={`px-3 py-1.5 text-xs rounded-lg border transition-all font-medium ${
-                !tcg
-                  ? "bg-accent text-white border-accent"
-                  : "border-border text-text-muted hover:text-text-secondary hover:border-accent/30"
+                !tcg ? "bg-accent text-white border-accent" : "border-border text-text-muted hover:border-accent/30"
               }`}
             >
               Todas
             </Link>
-            {tcgs.map((t) => (
+            {tcgInfos.map((t) => (
               <Link
                 key={t.id}
                 href={`/search?tcg=${t.id}`}
                 className={`px-3 py-1.5 text-xs rounded-lg border transition-all font-medium ${
-                  tcg === t.id
-                    ? "bg-accent text-white border-accent"
-                    : "border-border text-text-muted hover:text-text-secondary hover:border-accent/30"
+                  tcg === t.id ? "bg-accent text-white border-accent" : "border-border text-text-muted hover:border-accent/30"
                 }`}
               >
-                {t.name.split(" ")[0]}
+                {t.name}
               </Link>
             ))}
           </div>
@@ -313,13 +186,7 @@ function SearchContent() {
 
 export default function SearchPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          <CardGridSkeleton count={PAGE_SIZE} />
-        </div>
-      }
-    >
+    <Suspense fallback={<div className="max-w-7xl mx-auto px-4 py-8"><CardGridSkeleton count={PAGE_SIZE} /></div>}>
       <SearchContent />
     </Suspense>
   );

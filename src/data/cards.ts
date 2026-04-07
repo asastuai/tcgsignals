@@ -257,13 +257,13 @@ export function searchCards(query: string): Card[] {
 }
 
 export function getTrendingCards(): Card[] {
-  return [...cards].sort((a, b) => Math.abs(b.priceChange24h) - Math.abs(a.priceChange24h)).slice(0, 6);
+  return [...cards].sort((a, b) => Math.abs(b.priceChange24h ?? 0) - Math.abs(a.priceChange24h ?? 0)).slice(0, 6);
 }
 
 export function getTopGainers(): Card[] {
-  return [...cards].sort((a, b) => b.priceChange24h - a.priceChange24h).slice(0, 5);
+  return [...cards].sort((a, b) => (b.priceChange24h ?? 0) - (a.priceChange24h ?? 0)).slice(0, 5);
 }
 
 export function getTopLosers(): Card[] {
-  return [...cards].sort((a, b) => a.priceChange24h - b.priceChange24h).slice(0, 5);
+  return [...cards].sort((a, b) => (a.priceChange24h ?? 0) - (b.priceChange24h ?? 0)).slice(0, 5);
 }

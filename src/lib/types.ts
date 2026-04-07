@@ -26,9 +26,9 @@ export interface Card {
   number: string;
   rarity: string;
   image: string;
-  currentPrice: number;
-  previousPrice: number;
-  priceChange24h: number;
+  currentPrice: number | null;
+  previousPrice: number | null;
+  priceChange24h: number | null;
   lastSold?: LastSold;
 }
 
