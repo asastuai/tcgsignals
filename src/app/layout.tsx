@@ -6,10 +6,33 @@ import './globals.css'
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
+const siteUrl = 'https://tcg-signals.vercel.app'
+
 export const metadata: Metadata = {
-  title: 'TCGSignals - Real-Time TCG Price Tracking',
-  description: 'Track Pokemon, One Piece, Yu-Gi-Oh, and MTG card prices in real-time. The most comprehensive price tracking platform for trading card games.',
-  generator: 'v0.app',
+  title: {
+    default: 'TCGSignals - Real-Time TCG Price Tracking',
+    template: '%s | TCGSignals',
+  },
+  description: 'Track Pokemon and One Piece card prices in real-time. Price history, top movers, set values, and market data for 21,000+ cards.',
+  keywords: ['TCG', 'Pokemon cards', 'One Piece cards', 'card prices', 'price tracking', 'trading card games', 'TCGSignals'],
+  metadataBase: new URL(siteUrl),
+  openGraph: {
+    title: 'TCGSignals - Real-Time TCG Price Tracking',
+    description: 'Track Pokemon and One Piece card prices in real-time. 21,000+ cards with price history and market data.',
+    url: siteUrl,
+    siteName: 'TCGSignals',
+    type: 'website',
+    locale: 'en_US',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'TCGSignals - Real-Time TCG Price Tracking',
+    description: 'Track Pokemon and One Piece card prices in real-time. 21,000+ cards with price history and market data.',
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
   icons: {
     icon: [
       {

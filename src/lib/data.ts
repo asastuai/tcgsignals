@@ -190,7 +190,7 @@ export async function getGainers(limit = 5): Promise<CardData[]> {
   const { data } = await supabase
     .from("cards")
     .select(CARD_SELECT)
-    .not("current_price", "is", null).gt("current_price", 0)
+    .not("current_price", "is", null).gt("current_price", 1)
     .not("price_change_24h", "is", null)
     .order("price_change_24h", { ascending: false })
     .limit(limit);
@@ -205,7 +205,7 @@ export async function getLosers(limit = 5): Promise<CardData[]> {
   const { data } = await supabase
     .from("cards")
     .select(CARD_SELECT)
-    .not("current_price", "is", null).gt("current_price", 0)
+    .not("current_price", "is", null).gt("current_price", 1)
     .not("price_change_24h", "is", null)
     .order("price_change_24h", { ascending: true })
     .limit(limit);

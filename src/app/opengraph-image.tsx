@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "TCGSignals - Precios de cartas TCG en tiempo real";
+export const alt = "TCGSignals - Real-Time TCG Price Tracking";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -29,7 +29,7 @@ export default async function Image() {
           </span>
         </div>
         <p style={{ fontSize: "28px", color: "#9898b0", maxWidth: "600px", textAlign: "center", lineHeight: 1.4 }}>
-          Precios en tiempo real para tus cartas coleccionables
+          Real-time price tracking for 21,000+ trading cards
         </p>
         <div style={{ display: "flex", gap: "32px", marginTop: "40px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", background: "rgba(255,203,5,0.15)", padding: "12px 24px", borderRadius: "12px" }}>

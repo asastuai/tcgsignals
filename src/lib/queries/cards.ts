@@ -208,7 +208,7 @@ export async function getTrendingCards(limit = 12): Promise<Record<string, unkno
       .from("cards")
       .select(CARD_SELECT)
       .not("current_price", "is", null)
-      .gt("current_price", 0)
+      .gt("current_price", 1)
       .order("current_price", { ascending: false })
       .limit(limit);
 
@@ -229,7 +229,7 @@ export async function getTopMovers(
       .from("cards")
       .select(CARD_SELECT)
       .not("current_price", "is", null)
-      .gt("current_price", 0)
+      .gt("current_price", 1)
       .not("price_change_24h", "is", null)
       .order("price_change_24h", { ascending: direction === "down" })
       .limit(limit);
