@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react"
 // client component — receives id as prop from server page
 import Link from "next/link"
-import Image from "next/image"
+// uses native img tags for cross-domain card images
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Sparkline } from "@/components/sparkline"
@@ -110,7 +110,7 @@ export default function SetDetailPage({ id }: { id: string }) {
               <div className="flex items-start gap-4">
                 <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border/60 bg-card" style={{ borderTopColor: getTcgColor(set.tcg), borderTopWidth: 2 }}>
                   {set.imageUrl ? (
-                    <Image src={set.imageUrl} alt={set.name} width={80} height={80} className="object-contain p-1" />
+                    <img src={set.imageUrl} alt={set.name} className="h-full w-full object-contain p-1" />
                   ) : (
                     <Layers className="h-8 w-8 text-muted-foreground/40" />
                   )}
@@ -180,13 +180,13 @@ export default function SetDetailPage({ id }: { id: string }) {
                         return (
                           <Link key={card.id} href={`/card/${card.id}`} className="group overflow-hidden rounded-xl border border-border/60 bg-card transition-all hover:border-primary/30">
                             <div className="h-0.5" style={{ backgroundColor: getRarityColor(card.rarity) }} />
-                            <div className="relative flex aspect-[3/4] items-center justify-center bg-secondary/30">
+                            <div className="relative flex aspect-[3/4] items-center justify-center bg-secondary/30 overflow-hidden">
                               {card.image ? (
-                                <Image src={card.image} alt={card.name} fill className="object-contain p-1" sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw" />
+                                <img src={card.image} alt={card.name} className="h-full w-full object-contain" loading="lazy" />
                               ) : (
                                 <span className="font-mono text-lg text-muted-foreground/20">#{card.number?.split("/")[0]}</span>
                               )}
-                              <div className="absolute left-1.5 top-1.5 rounded bg-background/80 px-1.5 py-0.5 text-[10px] font-mono text-foreground backdrop-blur-sm">#{card.number}</div>
+                              <div className="absolute bottom-1 right-1.5 rounded px-1 py-0.5 text-[9px] font-mono text-muted-foreground/50">#{card.number}</div>
                             </div>
                             <div className="p-2.5">
                               <h3 className="truncate text-sm font-medium text-foreground">{card.name}</h3>

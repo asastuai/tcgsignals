@@ -58,7 +58,7 @@ export function mapOnePieceSetToDB(set: typeof ONEPIECE_SETS[0]) {
 }
 
 export function getOnePieceImageUrl(cardId: string): string {
-  return `https://en.onepiece-cardgame.com/images/cardlist/card/${cardId}.png`;
+  return `https://www.optcgapi.com/media/static/Card_Images/${cardId}.jpg`;
 }
 
 export function mapOnePieceCardToDB(card: OnePieceCard) {

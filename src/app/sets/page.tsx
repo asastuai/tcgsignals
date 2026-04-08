@@ -104,10 +104,11 @@ export default function SetsPage() {
                         {set.image_url ? (
                           <img src={set.image_url} alt={set.name} className="h-10 mb-3 object-contain" loading="lazy" />
                         ) : (
-                          <div className={`w-10 h-10 rounded-lg mb-3 flex items-center justify-center text-xs font-bold ${
+                          <div className={`h-10 rounded-lg mb-3 flex items-center gap-2 px-2 text-xs font-bold ${
                             set.tcg_id === "pokemon" ? "bg-pokemon/20 text-pokemon" : "bg-onepiece/20 text-onepiece"
                           }`}>
-                            {set.tcg_id === "pokemon" ? "PKM" : "OP"}
+                            <span className="text-base">{set.tcg_id === "pokemon" ? "PKM" : "OP"}</span>
+                            <span className="text-[10px] font-normal text-text-muted opacity-60 truncate">{set.code || set.id}</span>
                           </div>
                         )}
                         <h3 className="text-sm font-semibold text-text-primary group-hover:text-accent transition-colors truncate">
