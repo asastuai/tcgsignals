@@ -326,9 +326,6 @@ function GridCard({ card }: { card: CardData }) {
             </div>
           )}
         </div>
-        <span className="absolute left-2 top-2 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider" style={{ backgroundColor: `${getTcgColor(card.tcg)}25`, color: getTcgColor(card.tcg) }}>
-          {card.tcg}
-        </span>
       </div>
       <div className="flex flex-1 flex-col gap-1.5 p-3">
         <h3 className="truncate text-sm font-medium text-foreground">{card.name}</h3>

@@ -64,16 +64,6 @@ function CardItem({ card, index }: { card: Card; index: number }) {
           {/* Card image */}
           <div className="relative aspect-[5/7] rounded-lg bg-bg-secondary mb-3 overflow-hidden flex items-center justify-center">
             <CardImage src={card.image} alt={card.name} />
-            {/* TCG badge */}
-            <span
-              className={`absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-full backdrop-blur-sm ${
-                card.tcg === "pokemon"
-                  ? "bg-pokemon/20 text-pokemon"
-                  : "bg-onepiece/20 text-onepiece"
-              }`}
-            >
-              {card.tcg === "pokemon" ? "PKM" : "OP"}
-            </span>
           </div>
 
           {/* Card info */}

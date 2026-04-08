@@ -32,13 +32,6 @@ function TrendingCard({ card }: { card: CardData }) {
           )}
         </div>
 
-        {/* TCG badge */}
-        <span
-          className="absolute left-2 top-2.5 rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/90"
-          style={{ backgroundColor: `${getTcgColor(card.tcg)}30` }}
-        >
-          {card.tcg}
-        </span>
 
         {/* Heart */}
         <button
