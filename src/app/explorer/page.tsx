@@ -1,11 +1,11 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Sparkline } from "@/components/sparkline"
-import { cards, tcgCategories, getRarityColor, getTcgColor, type CardData, type TCG } from "@/lib/data"
+import { fetchCards, fetchTcgCounts, getRarityColor, getTcgColor, type CardData, type TCG } from "@/lib/data"
 import { fmtUsd, fmtPct, fmt, cn } from "@/lib/utils"
 import { Search, SlidersHorizontal, Grid3X3, List, X, ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -13,13 +13,15 @@ import { Button } from "@/components/ui/button"
 type SortKey = "price-desc" | "price-asc" | "change-desc" | "change-asc" | "name"
 type ViewMode = "grid" | "list"
 
-const rarities = ["Common", "Uncommon", "Rare", "Ultra Rare", "Secret Rare", "Special Art"] as const
+const rarities = ["Common", "Uncommon", "Rare", "Ultra Rare", "Double Rare", "Illustration Rare", "Special Illustration Rare", "Hyper Rare", "SEC", "SR", "R", "UC", "C"] as const
 const sortOptions: { value: SortKey; label: string }[] = [
   { value: "price-desc", label: "Price: High to Low" },
   { value: "price-asc", label: "Price: Low to High" },
   { value: "change-desc", label: "24h Change" },
   { value: "name", label: "Name A-Z" },
 ]
+
+const TCG_MAP: Record<string, string> = { "Pokemon": "pokemon", "One Piece": "onepiece" }
 
 export default function ExplorerPage() {
   const [search, setSearch] = useState("")
@@ -29,29 +31,39 @@ export default function ExplorerPage() {
   const [view, setView] = useState<ViewMode>("grid")
   const [page, setPage] = useState(1)
   const [showFilters, setShowFilters] = useState(false)
-  const pageSize = 12
+  const pageSize = 48
 
-  const filtered = useMemo(() => {
-    let result = [...cards]
-    if (search) {
-      const q = search.toLowerCase()
-      result = result.filter((c) => c.name.toLowerCase().includes(q) || c.set.toLowerCase().includes(q))
+  const [paged, setPaged] = useState<CardData[]>([])
+  const [totalItems, setTotalItems] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [tcgCategories, setTcgCategories] = useState<{ name: TCG; color: string; count: number; id: string }[]>([])
+
+  const loadCards = useCallback(async () => {
+    setLoading(true)
+    const sortMap: Record<string, string> = {
+      "price-desc": "price-desc",
+      "price-asc": "price-asc",
+      "change-desc": "change-desc",
+      "change-asc": "change-asc",
+      "name": "name-asc",
     }
-    if (tcgFilter !== "all") result = result.filter((c) => c.tcg === tcgFilter)
-    if (rarityFilter.length) result = result.filter((c) => rarityFilter.includes(c.rarity))
+    const result = await fetchCards({
+      tcg: tcgFilter !== "all" ? TCG_MAP[tcgFilter] || tcgFilter : undefined,
+      rarity: rarityFilter.length === 1 ? rarityFilter[0] : undefined,
+      search: search || undefined,
+      sort: sortMap[sort] || "price-desc",
+      page,
+      pageSize,
+    })
+    setPaged(result.cards)
+    setTotalItems(result.total)
+    setLoading(false)
+  }, [search, tcgFilter, rarityFilter, sort, page, pageSize])
 
-    switch (sort) {
-      case "price-desc": result.sort((a, b) => b.price - a.price); break
-      case "price-asc": result.sort((a, b) => a.price - b.price); break
-      case "change-desc": result.sort((a, b) => b.change24h - a.change24h); break
-      case "name": result.sort((a, b) => a.name.localeCompare(b.name)); break
-    }
-    return result
-  }, [search, tcgFilter, rarityFilter, sort])
+  useEffect(() => { loadCards() }, [loadCards])
+  useEffect(() => { fetchTcgCounts().then(setTcgCategories) }, [])
 
-  const totalPages = Math.ceil(filtered.length / pageSize)
-  const paged = filtered.slice((page - 1) * pageSize, page * pageSize)
-
+  const totalPages = Math.ceil(totalItems / pageSize)
   const hasActiveFilters = tcgFilter !== "all" || rarityFilter.length > 0 || search.length > 0
 
   const clearFilters = () => {
@@ -75,7 +87,7 @@ export default function ExplorerPage() {
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold text-foreground">Card Explorer</h1>
             <span className="rounded-md bg-secondary px-2 py-0.5 text-xs font-medium text-muted-foreground">
-              {fmt(filtered.length)} cards
+              {loading ? "..." : fmt(totalItems)} cards
             </span>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">Browse and discover cards across all supported TCGs</p>
@@ -254,7 +266,7 @@ export default function ExplorerPage() {
         {totalPages > 1 && (
           <div className="mt-6 flex items-center justify-between">
             <span className="text-xs text-muted-foreground">
-              Showing {(page - 1) * pageSize + 1}-{Math.min(page * pageSize, filtered.length)} of {fmt(filtered.length)}
+              Showing {(page - 1) * pageSize + 1}-{Math.min(page * pageSize, totalItems)} of {fmt(totalItems)}
             </span>
             <div className="flex items-center gap-1">
               <button
@@ -304,11 +316,15 @@ function GridCard({ card }: { card: CardData }) {
       className="group flex flex-col overflow-hidden rounded-xl border border-border/60 bg-card transition-all hover:border-primary/30"
     >
       <div className="relative aspect-[5/6] bg-secondary/60 overflow-hidden">
-        <div className="absolute inset-x-0 top-0 h-0.5" style={{ backgroundColor: getTcgColor(card.tcg) }} />
-        <div className="flex h-full items-center justify-center">
-          <div className="flex h-14 w-10 items-center justify-center rounded border border-border/40 bg-secondary text-[10px] font-mono text-muted-foreground/50">
-            {card.number}
-          </div>
+        <div className="absolute inset-x-0 top-0 h-0.5 z-10" style={{ backgroundColor: getTcgColor(card.tcg) }} />
+        <div className="flex h-full items-center justify-center transition-transform group-hover:scale-[1.03]">
+          {card.image ? (
+            <img src={card.image} alt={card.name} className="h-full w-full object-contain" loading="lazy" />
+          ) : (
+            <div className="flex h-14 w-10 items-center justify-center rounded border border-border/40 bg-secondary text-[10px] font-mono text-muted-foreground/50">
+              {card.number}
+            </div>
+          )}
         </div>
         <span className="absolute left-2 top-2 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider" style={{ backgroundColor: `${getTcgColor(card.tcg)}25`, color: getTcgColor(card.tcg) }}>
           {card.tcg}

@@ -21,11 +21,15 @@ function TrendingCard({ card }: { card: CardData }) {
         {/* Rarity color strip at top */}
         <div className="absolute inset-x-0 top-0 z-10 h-0.5" style={{ backgroundColor: getTcgColor(card.tcg) }} />
 
-        {/* Placeholder card illustration */}
+        {/* Card image */}
         <div className="flex h-full w-full items-center justify-center transition-transform group-hover:scale-[1.03]">
-          <div className="flex h-16 w-12 items-center justify-center rounded-lg border border-border/40 bg-secondary text-muted-foreground/40">
-            <span className="text-xs font-mono">{card.number}</span>
-          </div>
+          {card.image ? (
+            <img src={card.image} alt={card.name} className="h-full w-full object-contain" loading="lazy" />
+          ) : (
+            <div className="flex h-16 w-12 items-center justify-center rounded-lg border border-border/40 bg-secondary text-muted-foreground/40">
+              <span className="text-xs font-mono">{card.number}</span>
+            </div>
+          )}
         </div>
 
         {/* TCG badge */}

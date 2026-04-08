@@ -1,12 +1,13 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { PriceChart } from "@/components/price-chart"
 import { Sparkline } from "@/components/sparkline"
-import { cards, getRarityColor, getTcgColor, type CardData } from "@/lib/data"
+import { fetchCardById, fetchCards, getRarityColor, getTcgColor, type CardData } from "@/lib/data"
 import { fmtUsd, fmtPct, cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -23,13 +24,12 @@ import {
   ShoppingCart,
 } from "lucide-react"
 
-/* ─── Mock extended data for detail view ─── */
 function getExtendedData(card: CardData) {
   return {
     ...card,
-    hp: "330",
-    artist: "Mitsuhiro Arita",
-    type: "Fire",
+    hp: card.hp || "",
+    artist: card.artist || "",
+    type: card.types?.[0] || card.supertype || "",
     allTimeHigh: card.price * 1.35,
     allTimeLow: card.price * 0.45,
     avgPrice: card.price * 0.97,
@@ -38,9 +38,9 @@ function getExtendedData(card: CardData) {
     totalVolume: card.volume * 850,
     totalListings: Math.floor(card.volume * 0.4),
     platforms: [
-      { name: "TCGPlayer", price: card.price, condition: "Near Mint", stock: 45, best: true },
-      { name: "CardMarket", price: card.price * 1.03, condition: "Near Mint", stock: 23, best: false },
-      { name: "eBay", price: card.price * 1.08, condition: "Near Mint", stock: 12, best: false },
+      { name: "TCGPlayer", price: card.price, condition: "Near Mint", stock: 45, best: true, url: card.tcgplayerUrl },
+      { name: "CardMarket", price: card.price * 1.03, condition: "Near Mint", stock: 23, best: false, url: card.cardmarketUrl },
+      { name: "eBay", price: card.price * 1.08, condition: "Near Mint", stock: 12, best: false, url: null },
     ],
     sales: Array.from({ length: 8 }, (_, i) => ({
       date: new Date(Date.now() - i * 86400000).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
@@ -53,10 +53,53 @@ function getExtendedData(card: CardData) {
 
 export default function CardDetailPage() {
   const params = useParams()
-  const baseCard = cards.find((c) => c.id === params.id) ?? cards[0]
-  const card = getExtendedData(baseCard)
+  const [card, setCard] = useState<ReturnType<typeof getExtendedData> | null>(null)
+  const [similar, setSimilar] = useState<CardData[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function load() {
+      const baseCard = await fetchCardById(params.id as string)
+      if (baseCard) {
+        setCard(getExtendedData(baseCard))
+        // Fetch similar cards from same TCG
+        const tcgId = baseCard.tcg === "One Piece" ? "onepiece" : "pokemon"
+        const { cards: sim } = await fetchCards({ tcg: tcgId, sort: "price-desc", pageSize: 6 })
+        setSimilar(sim.filter((c) => c.id !== baseCard.id).slice(0, 5))
+      }
+      setLoading(false)
+    }
+    load()
+  }, [params.id])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="flex items-center justify-center py-32">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        </div>
+        <Footer />
+      </div>
+    )
+  }
+
+  if (!card) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="flex items-center justify-center py-32">
+          <div className="text-center">
+            <p className="text-lg font-medium text-foreground">Card not found</p>
+            <Link href="/explorer" className="mt-2 inline-block text-sm text-primary hover:underline">Back to Explorer</Link>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    )
+  }
+
   const up = card.change24h >= 0
-  const similar = cards.filter((c) => c.id !== card.id && c.tcg === card.tcg).slice(0, 5)
 
   return (
     <div className="min-h-screen bg-background">
@@ -78,12 +121,14 @@ export default function CardDetailPage() {
                 style={{ backgroundColor: getRarityColor(card.rarity) }}
               />
               <div className="relative overflow-hidden rounded-xl border border-border/60 bg-card p-5">
-                <div className="flex aspect-[3/4] items-center justify-center rounded-lg bg-secondary">
-                  <div className="flex flex-col items-center gap-2 text-muted-foreground/40">
+                <div className="flex aspect-[3/4] items-center justify-center rounded-lg bg-secondary overflow-hidden">
+                  {card.image ? (
+                    <img src={card.image} alt={card.name} className="h-full w-full object-contain" />
+                  ) : (
                     <div className="flex h-20 w-14 items-center justify-center rounded-lg border border-border/30 bg-secondary/80">
                       <span className="text-xs font-mono">{card.number}</span>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -233,7 +278,9 @@ export default function CardDetailPage() {
                         href={`/card/${c.id}`}
                         className="w-36 shrink-0 overflow-hidden rounded-xl border border-border/60 bg-card transition-colors hover:border-primary/30"
                       >
-                        <div className="aspect-[5/4] bg-secondary/60" />
+                        <div className="aspect-[5/4] bg-secondary/60 overflow-hidden flex items-center justify-center">
+                          {c.image ? <img src={c.image} alt={c.name} className="h-full w-full object-contain" loading="lazy" /> : null}
+                        </div>
                         <div className="p-2.5">
                           <div className="truncate text-xs font-medium text-foreground">{c.name}</div>
                           <div className="mt-1 flex items-center justify-between">
